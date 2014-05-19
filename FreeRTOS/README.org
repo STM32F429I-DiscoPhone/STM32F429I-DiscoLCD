@@ -1,0 +1,94 @@
+#+TITLE: README
+#+AUTHOR: Winfred Lu
+#+EMAIL: winfred.lu@gmail.com
+#+STARTUP: content
+
+* Introduction
+  [[http://www.freertos.org/][FreeRTOS]] 8.0.0 porting on [[http://www.st.com/web/catalog/tools/FM116/SC959/SS1532/PF259090][32F429IDISCOVERY]] board using GCC on linux.
+
+  Building the projects requires an arm-none-eabi- toolchain with Cortex-M4F support. The known working toolchains are:
+  - [[http://www.mentor.com/embedded-software/sourcery-tools/sourcery-codebench/editions/lite-edition/][Sourcery CodeBench]]
+  - [[https://launchpad.net/gcc-arm-embedded][GNU Tools for ARM Embedded Processors]]
+
+* Get FreeRTOS and STM32F429 Discovery Firmware Ready
+  Download and decompress the [[http://sourceforge.net/projects/freertos/postdownloadsource%3Ddlp][FreeRTOS V8.0.0]] from sourceforge.
+  #+BEGIN_EXAMPLE
+    unzip FreeRTOSV8.0.0.zip
+  #+END_EXAMPLE
+
+  Download and decompress the [[http://www.st.com/web/en/catalog/tools/PF259429][STM32F429 discovery firmware package]] from STMicroelectronics website.
+  #+BEGIN_EXAMPLE
+    unzip stsw-stm32138.zip
+  #+END_EXAMPLE
+
+  Clone and build the project.
+  #+BEGIN_EXAMPLE
+    git clone https://github.com/winfred-lu/stm32f429-freertos800
+    cd stm32f429-freertos800
+    make
+  #+END_EXAMPLE
+
+  [[https://github.com/texane/stlink][stlink]] is required to flash the binary to the STM32F429I Discovery board. With stlink in the $PATH, then
+  #+BEGIN_EXAMPLE
+    make flash
+  #+END_EXAMPLE
+
+* (option) Download uGFX project
+  This would be only required if you would like to build the uGFX basic or notepad project.
+  #+BEGIN_EXAMPLE
+    git co https://bitbucket.org/Tectu/ugfx.git
+  #+END_EXAMPLE
+
+  Checkout the freertos branch (may be merged to master in the future).
+  #+BEGIN_EXAMPLE
+    git co freertos
+  #+END_EXAMPLE
+
+  Refrence: [[http://ugfx.org/][uGFX home]] and [[http://ugfx.org/forum/index.php][uGFX forum]]
+
+* Supported Projects
+  Multiple projects are supported:
+
+  1. A loop to toggle LEDs (without OS)
+     #+BEGIN_EXAMPLE
+       make clean
+       make led-test
+     #+END_EXAMPLE
+     No task will be created. An infinite loop to toggle LEDs that never breaks. Try this if there is a hardware issue or so.
+
+  2. Simple LED flasher example (default)
+     #+BEGIN_EXAMPLE
+       make clean
+       make simple-led
+     #+END_EXAMPLE
+     The LED flash tasks are created. Two of the tasks will toggle the STM32F429I Discovery board LED3 and LED4 in different frequency.
+
+  3. Comprehensive test/demo application
+     #+BEGIN_EXAMPLE
+       make clean
+       make complex-led
+     #+END_EXAMPLE
+     A lot of additional tasks and a software timer are crated. Please reference comments in main-led.c.
+
+  4. LCD test/demo application
+     #+BEGIN_EXAMPLE
+       make clean
+       make lcd
+     #+END_EXAMPLE
+     In addition to standard demo tasks, the following tasks are created:
+     - LCD task : a gatekeeper task that receives messages from the queue and writes the messages to the LCD.
+     - Check hook : periodically checks that all the demo tasks are still operational, and sends PASS or ERROR messages to the LCD task.
+
+  5. basic uGFX application
+     #+BEGIN_EXAMPLE
+       make clean
+       make ugfx-basic
+     #+END_EXAMPLE
+     With LED flash tasks existing, the LCD task draws a yellow box, a blue full rectangle, a red line, and a white dotted curve.
+
+  6. uGFX notepad application
+     #+BEGIN_EXAMPLE
+       make clean
+       make ugfx
+     #+END_EXAMPLE
+     With LED flash tasks existing, the LCD task demostrates notepad application after the LCD calibration. Watch the [[https://www.youtube.com/watchv%3DZP_QPXTheLM][Demo video]].
