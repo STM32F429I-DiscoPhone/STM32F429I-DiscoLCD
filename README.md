@@ -10,3 +10,5 @@ I split the DiscoPhone project into three parts
 DiscoLCD
 ========
 In this part we want to build our DiscoPhone's UI and control flow.
+
+Implementing UI with ugfx on FreeRTOS, will port to F9-microkernel once F9 porting is ready.
