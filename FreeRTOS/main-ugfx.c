@@ -45,6 +45,8 @@
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainLCD_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
 
+static GListener gl;
+
 static void prvSetupHardware(void)
 {
 	/* Setup STM32 system (clock, PLL and Flash configuration) */
@@ -159,12 +161,51 @@ void createsKeyPad(void)
 static void prvLCDTask(void *pvParameters)
 {
 	( void ) pvParameters;
-
+	GEvent* pe;
 	gfxInit();
 
 	createsKeyPad();
+	geventListenerInit(&gl);
+	gwinAttachListener(&gl);
+	while (TRUE) {
+		pe = geventEventWait(&gl, TIME_INFINITE);
 
-	while (TRUE);
+		switch(pe->type) {
+			case GEVENT_GWIN_BUTTON:
+				if (((GEventGWinButton*)pe)->button == CallBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == CancelBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == OneBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == TwoBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == ThreeBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == FourBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == FiveBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == SixBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == SevenBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == EightBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == NineBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == ZeroBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == StarBtn) {
+
+				} else if (((GEventGWinButton*)pe)->button == JingBtn) {
+
+				}
+				break;
+			default:
+				break;
+		}
+	}
 }
 
 int main(void)
