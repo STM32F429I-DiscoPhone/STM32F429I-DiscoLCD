@@ -59,11 +59,11 @@ static void prvSetupHardware(void)
 	vParTestInitialise();
 }
 static GHandle	CallBtn, CancelBtn, OneBtn, TwoBtn, ThreeBtn, FourBtn, FiveBtn, SixBtn, SevenBtn, EightBtn, NineBtn, StarBtn, ZeroBtn, JingBtn;
-
+static GHandle  NumLabel;
 void createsKeyPad(void)
 {
 	char *msg = "Demo";
-	font_t		font1, font2;
+	font_t		font1;
 	GWidgetInit wi;
 	
 	font1 = gdispOpenFont("DejaVuSans24*");
@@ -76,6 +76,14 @@ void createsKeyPad(void)
 	gwinWidgetClearInit(&wi);
 	wi.g.show = TRUE;
 	
+	// Number label
+	wi.g.width = gdispGetWidth() - 20;
+	wi.g.height = 60;
+	wi.g.y = 20;
+	wi.g.x = 10;
+	wi.text = "   ";
+	NumLabel = gwinLabelCreate(0, &wi);
+
 	// Call button
 	wi.g.width = gdispGetWidth()/2 + 10;
 	wi.g.height = 40;
@@ -163,7 +171,9 @@ static void prvLCDTask(void *pvParameters)
 	( void ) pvParameters;
 	GEvent* pe;
 	gfxInit();
-
+	gwinAttachMouse(0);
+	char labeltext[16] = "";
+	uint32_t textindex = 0;
 	createsKeyPad();
 	geventListenerInit(&gl);
 	gwinAttachListener(&gl);
@@ -173,38 +183,52 @@ static void prvLCDTask(void *pvParameters)
 		switch(pe->type) {
 			case GEVENT_GWIN_BUTTON:
 				if (((GEventGWinButton*)pe)->button == CallBtn) {
-
+					//TODO: call
 				} else if (((GEventGWinButton*)pe)->button == CancelBtn) {
-
+					textindex = 0;
+					labeltext[0] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == OneBtn) {
-
+					labeltext[textindex++] = '1';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == TwoBtn) {
-
+					labeltext[textindex++] = '2';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == ThreeBtn) {
-
+					labeltext[textindex++] = '3';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == FourBtn) {
-
+					labeltext[textindex++] = '4';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == FiveBtn) {
-
+					labeltext[textindex++] = '5';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == SixBtn) {
-
+					labeltext[textindex++] = '6';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == SevenBtn) {
-
+					labeltext[textindex++] = '7';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == EightBtn) {
-
+					labeltext[textindex++] = '8';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == NineBtn) {
-
+					labeltext[textindex++] = '9';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == ZeroBtn) {
-
+					labeltext[textindex++] = '0';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == StarBtn) {
-
+					labeltext[textindex++] = '*';
+					labeltext[textindex] = '\0';
 				} else if (((GEventGWinButton*)pe)->button == JingBtn) {
-
+					labeltext[textindex++] = '#';
+					labeltext[textindex] = '\0';
 				}
 				break;
 			default:
 				break;
 		}
+		gwinSetText(NumLabel, labeltext, TRUE);
 	}
 }
 

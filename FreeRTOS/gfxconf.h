@@ -48,12 +48,15 @@
 #define GDISP_NEED_VALIDATION	FALSE
 #define GDISP_NEED_CLIP			TRUE
 #define GDISP_NEED_TEXT			TRUE
+    #define GDISP_NEED_ANTIALIAS                     TRUE
+	#define GDISP_NEED_UTF8                          TRUE
 #define GDISP_NEED_MULTITHREAD	TRUE
 #define GDISP_NEED_CIRCLE		TRUE
 
 #define GWIN_NEED_WINDOWMANAGER	TRUE
 #define GWIN_NEED_WIDGET		TRUE
 #define	GWIN_NEED_BUTTON		TRUE
+#define GWIN_NEED_LABEL         TRUE
 
 /* Builtin Fonts */
 #define GDISP_INCLUDE_FONT_UI2			TRUE
@@ -63,6 +66,7 @@
 
 /* Features for the GINPUT sub-system. */
 #define GINPUT_NEED_MOUSE		TRUE
+	#define GINPUT_MOUSE_CALIBRATE_EXTREMES	FALSE
 
 #define GFX_USE_GQUEUE			TRUE
 #define GQUEUE_NEED_ASYNC		TRUE
