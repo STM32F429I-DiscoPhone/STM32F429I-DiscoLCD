@@ -41,7 +41,7 @@
 #include "gfx.h"
 
 /* SIM900 includes */
-#include "sim900.h"
+#include "sim900a.h"
 
 
 /* Task priorities. */
@@ -239,10 +239,10 @@ static void prvLCDTask(void *pvParameters)
 /* Test SIM900 API */
 static void prvAPITest(void *pvParameters)
 {
-    SIM900_Init();
+    SIM900A_Init();
 
     while(1) {
-        SIM900_Test();
+        SIM900A_Test();
     }
 }
 
@@ -257,7 +257,7 @@ int main(void)
 	/* Start the LCD task */
 	xTaskCreate( prvLCDTask, "LCD", configMINIMAL_STACK_SIZE * 2, NULL, mainLCD_TASK_PRIORITY, NULL );
 
-	/* Start the SIM900 API test task */
+	/* Start the SIM900A API test task */
 	xTaskCreate( prvAPITest, "APITest", configMINIMAL_STACK_SIZE * 2, NULL, mainFLASH_TASK_PRIORITY, NULL );
 
 	/* Start the scheduler. */
