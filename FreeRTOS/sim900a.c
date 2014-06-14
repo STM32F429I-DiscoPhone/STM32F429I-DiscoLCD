@@ -4,18 +4,19 @@
 #include "tm_stm32f4_usart.h"
 
 #include <FreeRTOS.h>
+#include <task.h>
 
 #define DBG
 
 #define WAITTIME 2000000
 
 #ifdef DBG
-static dbg_puts(char *str)
+static void dbg_puts(char *str)
 {
     TM_USART_Puts(USART6, str);
 }
 #else
-static dbg_puts(char *str)
+static void dbg_puts(char *str)
 {
 
 }
@@ -29,7 +30,12 @@ static void RecvResponse(char *response)
 
     while(wait--) {
         if((c = TM_USART_Getc(USART1)) != 0) {
-            response[recv++] = c;
+            if(c == '\n' || c == '\r') {
+
+            }
+            else {
+                response[recv++] = c;
+            }
         }
     }
 
@@ -112,6 +118,31 @@ void SIM900A_Init()
     }
 }
 
+void SIM900A_GetModule(SIM900A_MODULE_T *module)
+{
+    char recv[32];
+
+    SendCmd("AT+CGMI");
+    RecvResponse(recv);
+    if(strlen(recv) > 0) {
+        strncpy(module->manufacturer, recv, strlen(recv) - 2);
+    }
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+    SendCmd("AT+CGMM");
+    RecvResponse(recv);
+    if(strlen(recv) > 0) {
+        strncpy(module->type, recv, strlen(recv) - 2);
+    }
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+    SendCmd("AT+CGSN");
+    RecvResponse(recv);
+    if(strlen(recv) > 0) {
+        strncpy(module->imei, recv, strlen(recv) - 2);
+    }
+}
+
 void SIM900A_Dial(char *number)
 {
     char cmd[16] = {0};
@@ -153,12 +184,15 @@ void SIM900A_Dial(char *number)
 void SIM900A_Test()
 {
     while(1) {
-        SendCmd_Check("AT", NULL);
         vTaskDelay(5000 / portTICK_PERIOD_MS);
-        SIM900A_Dial("0973439084");
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-        SIM900A_Dial("0422231439");
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-        SIM900A_Dial("062353535");
+        SIM900A_MODULE_T module;
+        SIM900A_GetModule(&module);
+
+        dbg_puts(module.manufacturer);
+        dbg_puts(", ");
+        dbg_puts(module.type);
+        dbg_puts(", ");
+        dbg_puts(module.imei);
+        dbg_puts("\n\r");
     }
 }
