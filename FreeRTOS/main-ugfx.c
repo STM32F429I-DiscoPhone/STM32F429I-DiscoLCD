@@ -40,10 +40,14 @@
 /* uGFX includes. */
 #include "gfx.h"
 
+/* SIM900 includes */
+#include "sim900.h"
+
 
 /* Task priorities. */
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainLCD_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
+#define mainAPI_TASK_PRIORITY				( tskIDLE_PRIORITY + 3 )
 
 static GListener gl;
 
@@ -232,6 +236,16 @@ static void prvLCDTask(void *pvParameters)
 	}
 }
 
+/* Test SIM900 API */
+static void prvAPITest(void *pvParameters)
+{
+    SIM900_Init();
+
+    while(1) {
+        SIM900_Test();
+    }
+}
+
 int main(void)
 {
 	/* Configure the hardware ready to run the test. */
@@ -242,6 +256,9 @@ int main(void)
 
 	/* Start the LCD task */
 	xTaskCreate( prvLCDTask, "LCD", configMINIMAL_STACK_SIZE * 2, NULL, mainLCD_TASK_PRIORITY, NULL );
+
+	/* Start the SIM900 API test task */
+	xTaskCreate( prvAPITest, "APITest", configMINIMAL_STACK_SIZE * 2, NULL, mainFLASH_TASK_PRIORITY, NULL );
 
 	/* Start the scheduler. */
 	vTaskStartScheduler();
