@@ -8,7 +8,10 @@ typedef struct {
 } SIM900A_MODULE_T;
 
 void SIM900A_Init();
+void SIM900A_GetModule(SIM900A_MODULE_T *module);
+
 void SIM900A_Dial(char *number);
+void SIM900A_Answer()
 
 void SIM900A_Test();
 #endif

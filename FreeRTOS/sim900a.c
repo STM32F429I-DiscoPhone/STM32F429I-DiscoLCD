@@ -180,6 +180,31 @@ void SIM900A_Dial(char *number)
     }
 }
 
+void SIM900A_Answer()
+{
+    char recv[64];
+
+    dbg_puts("Answer phone\n\r");
+    SendCmd("ATA");
+
+    while(1) {
+        RecvResponse(recv);
+
+        if(strlen(recv) == 0) {
+            continue;
+        }
+
+        if(strstr(recv, "NO CARRIER")) {
+            dbg_puts("NO CARRIER\n\r");
+        }
+        else if(strstr(recv, "OK")) {
+            dbg_puts("Answer successful!\n\r");
+        }
+
+        break;
+    }
+}
+
 /* Test API */
 void SIM900A_Test()
 {
