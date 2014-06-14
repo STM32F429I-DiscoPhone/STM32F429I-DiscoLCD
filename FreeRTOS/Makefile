@@ -130,6 +130,7 @@ UGFX_OBJS += \
 	$(UGFX)/src/gwin/gwidget.o \
 	$(UGFX)/src/gwin/button.o \
 	$(UGFX)/src/gwin/label.o \
+	$(UGFX)/src/gwin/gcontainer.o \
 	$(UGFX)/src/gqueue/gqueue.o
 
 ugfx: $(UGFX_OBJS)

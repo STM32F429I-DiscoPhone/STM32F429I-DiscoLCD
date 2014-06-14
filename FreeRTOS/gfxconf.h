@@ -57,12 +57,14 @@
 #define GWIN_NEED_WIDGET		TRUE
 #define	GWIN_NEED_BUTTON		TRUE
 #define GWIN_NEED_LABEL         TRUE
+/* Features for the GWIN sub-system. */
+#define GWIN_NEED_CONSOLE		TRUE
+#define GWIN_NEED_CONTAINERS    TRUE
+#define GWIN_NEED_CONTAINER     TRUE
 
 /* Builtin Fonts */
 #define GDISP_INCLUDE_FONT_UI2			TRUE
 
-/* Features for the GWIN sub-system. */
-#define GWIN_NEED_CONSOLE		TRUE
 
 /* Features for the GINPUT sub-system. */
 #define GINPUT_NEED_MOUSE		TRUE
