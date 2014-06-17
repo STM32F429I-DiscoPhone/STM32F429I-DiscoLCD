@@ -44,8 +44,45 @@
 /* Task priorities. */
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainLCD_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
+#define SLEEP_TICKS       30000/portTICK_PERIOD_MS
 
 static GListener gl;
+
+
+static TickType_t ticks_to_sleep = SLEEP_TICKS;
+static TickType_t ticks_now, ticks_last;
+
+static TaskHandle_t LCD_Handle;
+
+int atoi(char *s)
+{
+	uint32_t num;
+	num = 0;
+	while (*s >= '0' && *s <= '9') {
+		num = num * 10 + (*s - '0');
+		s++;
+	}
+	return num;
+}
+
+char* itoa(uint32_t num)
+{
+	static char buffer[10 + 1];
+	char *ptr = buffer + 10;
+	if (num >= 0) {
+		do {
+			*(--p) = '0' + (num % 10);
+			num /= 10;
+		} while (num != 0);
+	} else {
+		do {
+			*(--p) = '0' - (num % 10);
+			num /= 10;
+		} while (num != 0);
+		*--p = '-';
+	}
+	return p;
+}
 
 static void prvSetupHardware(void)
 {
@@ -62,7 +99,7 @@ static void prvSetupHardware(void)
 static GHandle  MainMenuContainer, KeypadContainer, CallContainer, MsgContainer, CallOutContainer, CallInContainer;
 
 static GHandle	PHONEBtn, MSGBtn, CallBtn, CancelBtn, OneBtn, TwoBtn, ThreeBtn, FourBtn, FiveBtn, SixBtn, SevenBtn, EightBtn, NineBtn, StarBtn, ZeroBtn, JingBtn, AnswerBtn, DeclineBtn, HangoffBtn;
-static GHandle  NumLabel, MsgLabel[5];
+static GHandle  NumLabel, MsgLabel[5], IncomingLabel, OutgoingLabel;
 
 void createsContainer(void)
 {
@@ -294,6 +331,14 @@ void createsIncall(void)
 	wi.g.x += wi.g.width;
 	wi.text = "DECLINE";
 	DeclineBtn = gwinButtonCreate(0, &wi);
+
+	// Incoming Number Show
+	wi.g.x = 30;
+	wi.g.y = 50;
+	wi.g.height = 40;
+	wi.g.width = gdispGetWidth() -60;
+	wi.text = " ";
+	IncomingLabel = gwinLabelCreate(0, &wi);
 }
 
 void createsOutcall(void)
@@ -313,6 +358,35 @@ void createsOutcall(void)
 	wi.g.height = 80;
 	wi.text = "HANG OFF";
 	HangoffBtn = gwinButtonCreate(0, &wi);
+	// Outgoing Number Show
+	wi.g.x = 30;
+	wi.g.y = 50;
+	wi.g.height = 40;
+	wi.g.width = gdispGetWidth() -60;
+	wi.text = " ";
+	OutgoingLabel = gwinLabelCreate(0, &wi);
+}
+
+void incoming(char *num)
+{
+	gwinHide(MainMenuContainer);
+	gwinHide(MsgContainer);
+	gwinHide(CallContainer);
+	gwinHide(KeypadContainer);
+	gwinShow(CallInContainer);
+
+	gwinSetText(IncomingLabel, num, TRUE);
+}
+
+void outgoing(char* number)
+{
+	gwinHide(MainMenuContainer);
+	gwinHide(MsgContainer);
+	gwinHide(CallContainer);
+	gwinHide(KeypadContainer);
+	gwinShow(CallOutContainer);
+
+	gwinSetText(OutgoingLabel, number, TRUE);
 }
 
 void createsUI(void)
@@ -334,6 +408,18 @@ void createsUI(void)
 	createsOutcall();
 }
 
+void gotosleep(void)
+{
+	LCD_DisplayOff();
+	vTaskSuspend(NULL);
+}
+
+void wakeup(void)
+{
+	LCD_DisplayOn();
+	vTaskResume(LCD_Handle);
+}
+
 /* GFX notepad demo */
 static void prvLCDTask(void *pvParameters)
 {
@@ -342,6 +428,7 @@ static void prvLCDTask(void *pvParameters)
 	gfxInit();
 	gwinAttachMouse(0);
 	char labeltext[16] = "";
+	char last_char;
 	uint32_t textindex = 0, page = 0;
 	createsUI();
 	geventListenerInit(&gl);
@@ -349,96 +436,111 @@ static void prvLCDTask(void *pvParameters)
 
 	gwinShow(MainMenuContainer);
 	page = 0;
+ 	ticks_to_sleep = SLEEP_TICKS;
+	ticks_last = xTaskGetTickCount();
+	ticks_now = 0;
 	while (TRUE) {
-		pe = geventEventWait(&gl, TIME_INFINITE);
-
-		switch(pe->type) {
-			case GEVENT_GWIN_BUTTON:
-				if (((GEventGWinButton*)pe)->button == PHONEBtn) {
-					gwinHide(MainMenuContainer);
-					gwinHide(MsgContainer);
-					gwinShow(CallContainer);
-					gwinShow(KeypadContainer);
-					page = 1;
-				} else if (((GEventGWinButton*)pe)->button == MSGBtn) {
-					gwinHide(MainMenuContainer);
-					gwinHide(CallContainer);
-					gwinShow(MsgContainer);
-					gwinShow(KeypadContainer);
-					page = 2;
-				} else if (((GEventGWinButton*)pe)->button == CallBtn) {
-					//TODO: call
-				} else if (((GEventGWinButton*)pe)->button == CancelBtn) {
-					if (page == 1) {
-						textindex = 0;
-						labeltext[0] = '\0';
+		pe = geventEventWait(&gl, 10);
+		ticks_now = xTaskGetTickCount();
+		if (!pe) {
+			if (ticks_to_sleep <= ticks_now - ticks_last) {
+				gotosleep();
+			} else {
+				ticks_to_sleep -= (ticks_now - ticks_last);
+			}
+		} else {
+			ticks_to_sleep = SLEEP_TICKS;
+			switch(pe->type) {
+				case GEVENT_GWIN_BUTTON:
+					if (((GEventGWinButton*)pe)->button == PHONEBtn) {
+						gwinHide(MainMenuContainer);
+						gwinHide(MsgContainer);
+						gwinShow(CallContainer);
+						gwinShow(KeypadContainer);
+						page = 1;
+					} else if (((GEventGWinButton*)pe)->button == MSGBtn) {
+						gwinHide(MainMenuContainer);
+						gwinHide(CallContainer);
+						gwinShow(MsgContainer);
+						gwinShow(KeypadContainer);
+						page = 2;
+					} else if (((GEventGWinButton*)pe)->button == CallBtn) {
+						outgoing();
+					} else if (((GEventGWinButton*)pe)->button == CancelBtn) {
+						if (page == 1) {
+							textindex = 0;
+							labeltext[0] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == OneBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '1';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == TwoBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '2';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == ThreeBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '3';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == FourBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '4';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == FiveBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '5';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == SixBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '6';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == SevenBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '7';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == EightBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '8';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == NineBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '9';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == ZeroBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '0';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == StarBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '*';
+							labeltext[textindex] = '\0';
+						}
+					} else if (((GEventGWinButton*)pe)->button == JingBtn) {
+						if (page == 1) {
+							labeltext[textindex++] = '#';
+							labeltext[textindex] = '\0';
+						}
 					}
-				} else if (((GEventGWinButton*)pe)->button == OneBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '1';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == TwoBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '2';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == ThreeBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '3';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == FourBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '4';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == FiveBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '5';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == SixBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '6';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == SevenBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '7';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == EightBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '8';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == NineBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '9';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == ZeroBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '0';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == StarBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '*';
-						labeltext[textindex] = '\0';
-					}
-				} else if (((GEventGWinButton*)pe)->button == JingBtn) {
-					if (page == 1) {
-						labeltext[textindex++] = '#';
-						labeltext[textindex] = '\0';
-					}
-				}
-				break;
-			default:
-				break;
+					break;
+				default:
+					break;
+			}
+			if (page == 1) {
+				gwinSetText(NumLabel, labeltext, TRUE);
+			}
 		}
-		gwinSetText(NumLabel, labeltext, TRUE);
+		ticks_last = ticks_now;
 	}
 }
 
@@ -448,10 +550,10 @@ int main(void)
 	prvSetupHardware();
 
 	/* Start standard demo/test application flash tasks. */
-	vStartLEDFlashTasks( mainFLASH_TASK_PRIORITY );
+	//vStartLEDFlashTasks( mainFLASH_TASK_PRIORITY );
 
 	/* Start the LCD task */
-	xTaskCreate( prvLCDTask, "LCD", configMINIMAL_STACK_SIZE * 2, NULL, mainLCD_TASK_PRIORITY, NULL );
+	xTaskCreate( prvLCDTask, "LCD", configMINIMAL_STACK_SIZE * 2, NULL, mainLCD_TASK_PRIORITY, &LCD_Handle );
 
 	/* Start the scheduler. */
 	vTaskStartScheduler();
