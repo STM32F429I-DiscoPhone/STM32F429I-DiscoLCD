@@ -36,6 +36,10 @@
 
 /* Hardware and starter kit includes. */
 #include "stm32f4xx.h"
+#include "stm32f4xx_gpio.h"
+#include "stm32f4xx_rcc.h"
+#include "stm32f4xx_exti.h"
+#include "stm32f4xx_syscfg.h"
 
 /* uGFX includes. */
 #include "gfx.h"
@@ -45,14 +49,19 @@
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainLCD_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
 #define SLEEP_TICKS       30000/portTICK_PERIOD_MS
+#define NEXT_CHAR_TICKS   3000/portTICK_PERIOD_MS
 
 static GListener gl;
 
 
-static TickType_t ticks_to_sleep = SLEEP_TICKS;
-static TickType_t ticks_now, ticks_last;
+static TickType_t ticks_to_sleep = SLEEP_TICKS, ticks_to_nextchar = NEXT_CHAR_TICKS;
+static TickType_t ticks_now, ticks_last, ticks_of_last_char;
 
 static TaskHandle_t LCD_Handle;
+
+static uint8_t locking = 0;
+
+static const char_of_button[10][5] = { {' ','0',' ','0',0}, {',','.','!','?','1'}, {'a','b','c','2',0}, {'d','e','f','3',0}, {'g','h','i','4',0}, {'j','k','l','5',0}, {'m','n','o','6',0},{'p','q','r','s','7'},{'t','u','v','8',0},{'w','x','y','z','9'} };
 
 int atoi(char *s)
 {
@@ -68,7 +77,7 @@ int atoi(char *s)
 char* itoa(uint32_t num)
 {
 	static char buffer[10 + 1];
-	char *ptr = buffer + 10;
+	char *p = buffer + 10;
 	if (num >= 0) {
 		do {
 			*(--p) = '0' + (num % 10);
@@ -428,23 +437,33 @@ static void prvLCDTask(void *pvParameters)
 	gfxInit();
 	gwinAttachMouse(0);
 	char labeltext[16] = "";
-	char last_char;
-	uint32_t textindex = 0, page = 0;
+	char msgbuffer[255];
+	char linebuffer[3][41];
+	char* last_char = NULL;
+	char* last_char_in_lb = NULL;
+	uint32_t textindex = 0, page = 0, msgindex = 0, currentline = 0, lineindex = 0, changing = 0, i;
+
 	createsUI();
 	geventListenerInit(&gl);
 	gwinAttachListener(&gl);
 
 	gwinShow(MainMenuContainer);
+
 	page = 0;
- 	ticks_to_sleep = SLEEP_TICKS;
-	ticks_last = xTaskGetTickCount();
-	ticks_now = 0;
+ 	
+	ticks_to_sleep = SLEEP_TICKS;
+	ticks_now = xTaskGetTickCount();
+	ticks_last = 0;
+	ticks_of_last_char = 0;
+
 	while (TRUE) {
 		pe = geventEventWait(&gl, 10);
 		ticks_now = xTaskGetTickCount();
 		if (!pe) {
 			if (ticks_to_sleep <= ticks_now - ticks_last) {
 				gotosleep();
+				ticks_to_sleep = SLEEP_TICKS;
+				continue;
 			} else {
 				ticks_to_sleep -= (ticks_now - ticks_last);
 			}
@@ -465,82 +484,295 @@ static void prvLCDTask(void *pvParameters)
 						gwinShow(KeypadContainer);
 						page = 2;
 					} else if (((GEventGWinButton*)pe)->button == CallBtn) {
-						outgoing();
+						outgoing(labeltext);
 					} else if (((GEventGWinButton*)pe)->button == CancelBtn) {
 						if (page == 1) {
 							textindex = 0;
 							labeltext[0] = '\0';
+							changing = 1;
 						}
 					} else if (((GEventGWinButton*)pe)->button == OneBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '1';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 1) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 1) + 1;
+								if (i > 4 || char_of_button[1][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[1][i];
+								*last_char_in_lb = char_of_button[1][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[1][0];
+								linebuffer[currentline][lineindex++] = char_of_button[1][0];
+							}
 						}
 					} else if (((GEventGWinButton*)pe)->button == TwoBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '2';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 2) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 2) + 1;
+								if (i > 4 || char_of_button[2][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[2][i];
+								*last_char_in_lb = char_of_button[2][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[2][0];
+								linebuffer[currentline][lineindex++] = char_of_button[2][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == ThreeBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '3';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 3) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 3) + 1;
+								if (i > 4 || char_of_button[3][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[3][i];
+								*last_char_in_lb = char_of_button[3][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[3][0];
+								linebuffer[currentline][lineindex++] = char_of_button[3][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == FourBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '4';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 4) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 4) + 1;
+								if (i > 4 || char_of_button[4][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[4][i];
+								*last_char_in_lb = char_of_button[4][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[4][0];
+								linebuffer[currentline][lineindex++] = char_of_button[4][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == FiveBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '5';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 5) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 5) + 1;
+								if (i > 4 || char_of_button[5][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[5][i];
+								*last_char_in_lb = char_of_button[5][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[5][0];
+								linebuffer[currentline][lineindex++] = char_of_button[5][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == SixBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '6';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 6) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 6) + 1;
+								if (i > 4 || char_of_button[6][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[6][i];
+								*last_char_in_lb = char_of_button[6][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[6][0];
+								linebuffer[currentline][lineindex++] = char_of_button[6][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == SevenBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '7';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 7) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 7) + 1;
+								if (i > 4 || char_of_button[7][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[7][i];
+								*last_char_in_lb = char_of_button[7][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[7][0];
+								linebuffer[currentline][lineindex++] = char_of_button[7][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == EightBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '8';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 8) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 8) + 1;
+								if (i > 4 || char_of_button[8][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[8][i];
+								*last_char_in_lb = char_of_button[8][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[8][0];
+								linebuffer[currentline][lineindex++] = char_of_button[8][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == NineBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '9';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 9) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 9) + 1;
+								if (i > 4 || char_of_button[9][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[9][i];
+								*last_char_in_lb = char_of_button[9][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[9][0];
+								linebuffer[currentline][lineindex++] = char_of_button[9][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == ZeroBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '0';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							if (last_char != NULL && char_in_button(*last_char, 0) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(*last_char, 0) + 1;
+								if (i > 4 || char_of_button[0][i] == 0) {
+									i = 0;
+								}
+								*last_char = char_of_button[0][i];
+								*last_char_in_lb = char_of_button[0][i];
+							} else {
+								msgbuffer[msgindex++] = char_of_button[0][0];
+								linebuffer[currentline][lineindex++] = char_of_button[0][0];
+							}
+							
 						}
 					} else if (((GEventGWinButton*)pe)->button == StarBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '*';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							msgbuffer[msgindex++] = '*';
+							linebuffer[currentline][lineindex++] = '*';
 						}
 					} else if (((GEventGWinButton*)pe)->button == JingBtn) {
+						changing = 1;
 						if (page == 1) {
 							labeltext[textindex++] = '#';
 							labeltext[textindex] = '\0';
+						} else if (page == 2) {
+							msgbuffer[msgindex++] = '#';
+							linebuffer[currentline][lineindex++] = '#';
 						}
 					}
 					break;
 				default:
 					break;
 			}
-			if (page == 1) {
+			if (changing == 1 && page == 1) {
 				gwinSetText(NumLabel, labeltext, TRUE);
+				changing = 0;
+			} else if (changing == 1 && page == 2) {
+				changing = 0;
+				msgbuffer[msgindex] = '\0';
+				linebuffer[currentline][lineindex] = '\0';
+				ticks_of_last_char = ticks_now;
+				//if (msgindex != 0 && lineindex != 0) {
+				//	last_char = &(msgbuffer[msgindex-1]);
+				//	last_char_in_lb = &(linebuffer[lineindex-1]);
+				//}
+				gwinSetText(MsgLabel[1], linebuffer[0], TRUE);
+				gwinSetText(MsgLabel[2], linebuffer[1], TRUE);
+				gwinSetText(MsgLabel[3], linebuffer[2], TRUE);
+				if (lineindex == 41) {
+					if (currentline != 2) {
+						currentline ++;
+						lineindex = 0;
+					} else {
+						//TODO: overline
+					}
+				}
 			}
 		}
 		ticks_last = ticks_now;
+	}
+}
+
+/* Set button as interrupt */
+void initButton(void)
+{
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+	GPIO_InitTypeDef gpio_init;
+	GPIO_StructInit(&gpio_init);
+	gpio_init.GPIO_Mode = GPIO_Mode_IN;
+	gpio_init.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	gpio_init.GPIO_Pin = GPIO_Pin_0;
+	GPIO_Init(GPIOA, &gpio_init);
+
+	EXTI_InitTypeDef exti_init;
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA,EXTI_PinSource0);
+	exti_init.EXTI_Line = EXTI_Line0;
+	exti_init.EXTI_Mode = EXTI_Mode_Interrupt;
+	exti_init.EXTI_Trigger = EXTI_Trigger_Rising;
+	exti_init.EXTI_LineCmd = ENABLE;
+    EXTI_Init(&exti_init);
+
+	NVIC_InitTypeDef nvic_init;
+	nvic_init.NVIC_IRQChannel = EXTI0_IRQn;
+	nvic_init.NVIC_IRQChannelPreemptionPriority = 0x0F;
+	nvic_init.NVIC_IRQChannelSubPriority = 0x0F;
+	nvic_init.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&nvic_init);
+}
+
+void EXTI0_IRQHandler(void)
+{
+	if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
+		if (locking == 0) {
+			locking = 1;
+			lockphone();
+		} else {
+			locking = 0;
+			wakeup();
+		}
+		EXTI_ClearITPendingBit(EXTI_Line0);
 	}
 }
 
@@ -549,9 +781,9 @@ int main(void)
 	/* Configure the hardware ready to run the test. */
 	prvSetupHardware();
 
+	initButton();
 	/* Start standard demo/test application flash tasks. */
-	//vStartLEDFlashTasks( mainFLASH_TASK_PRIORITY );
-
+	vStartLEDFlashTasks( mainFLASH_TASK_PRIORITY );
 	/* Start the LCD task */
 	xTaskCreate( prvLCDTask, "LCD", configMINIMAL_STACK_SIZE * 2, NULL, mainLCD_TASK_PRIORITY, &LCD_Handle );
 
