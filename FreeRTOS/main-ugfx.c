@@ -241,10 +241,11 @@ void createsMsglabel(void)
 	wi.g.width = gdispGetWidth() - 20;
 	wi.g.y = 7;
 	wi.g.height = 12;
-	wi.text = "";
+	wi.text = "^^^";
 	MsgLabel[0] = gwinLabelCreate(0, &wi);
 
 	// Message Label 1
+	wi.text = "";
 	wi.g.y += wi.g.height;
 	MsgLabel[1] = gwinLabelCreate(0, &wi);
 
@@ -257,6 +258,7 @@ void createsMsglabel(void)
 	MsgLabel[3] = gwinLabelCreate(0, &wi);
 
 	// Message Label 4 (Down arrow)
+	wi.text = "vvv";
 	wi.g.y += wi.g.height;
 	MsgLabel[4] = gwinLabelCreate(0, &wi);
 }
@@ -385,6 +387,10 @@ void incoming(char *num)
 	gwinShow(CallInContainer);
 
 	gwinSetText(IncomingLabel, num, TRUE);
+
+	while (1) {
+		//TODO: accept or reject call
+	}
 }
 
 void outgoing(char* number)
@@ -396,6 +402,11 @@ void outgoing(char* number)
 	gwinShow(CallOutContainer);
 
 	gwinSetText(OutgoingLabel, number, TRUE);
+	
+	//TODO: call out
+	while (1) {
+		//TODO: wait end call or reject call
+	}
 }
 
 void createsUI(void)
@@ -419,17 +430,45 @@ void createsUI(void)
 
 void gotosleep(void)
 {
+	locking = 1;
 	LCD_DisplayOff();
-	vTaskSuspend(NULL);
+	vTaskSuspend( NULL );
+}
+
+void lockphone(void)
+{
+	LCD_DisplayOff();
+	vTaskSuspend( LCD_Handle );
 }
 
 void wakeup(void)
 {
+	BaseType_t xYieldRequired;	
 	LCD_DisplayOn();
-	vTaskResume(LCD_Handle);
+	xYieldRequired = xTaskResumeFromISR( LCD_Handle );
+	//taskYIELD();
+	if (xYieldRequired == pdTRUE) {
+		portYIELD_FROM_ISR(xYieldRequired);
+	}
 }
 
-/* GFX notepad demo */
+
+/* Find if the char in the button */
+uint32_t char_in_button(char c, uint32_t btn)
+{
+	uint32_t i;
+	for (i = 0; i < 5; i++) {
+		if (c == char_of_button[btn][i]) {
+			if (char_of_button[btn][i] != 0)
+				return i;
+			else
+				return -1;
+		}
+	}
+	return -1;
+}
+
+/* Phone UI & Control Task */
 static void prvLCDTask(void *pvParameters)
 {
 	( void ) pvParameters;
