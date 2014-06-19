@@ -5,7 +5,7 @@ BIN_IMAGE = $(PROJECT).bin
 HEX_IMAGE = $(PROJECT).hex
 
 # set the path to STM32F429I-Discovery firmware package
-STDP ?= ../../STM32F429I-Discovery_FW_V1.0.1
+STDP ?= ../../../STM32F429I-Discovery_FW_V1.0.1
 
 # set the path to FreeRTOS package
 RTOS ?= ../../FreeRTOSv8.0.1
@@ -60,6 +60,8 @@ UGFX_OBJS = \
     gdisp_lld_ILI9341.o \
     ginput_lld_mouse.o \
     main-ugfx.o \
+    sim900a.o \
+    tm_stm32f4_usart.o \
     ParTest.o \
     port.o \
     timertest.o \
@@ -83,6 +85,7 @@ UGFX_OBJS += \
     $(STDP)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_i2c.o \
     $(STDP)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_ltdc.o \
     $(STDP)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_gpio.o \
+    $(STDP)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_usart.o \
     $(STDP)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rcc.o \
     $(STDP)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_exti.o \
     $(STDP)/Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_syscfg.o \

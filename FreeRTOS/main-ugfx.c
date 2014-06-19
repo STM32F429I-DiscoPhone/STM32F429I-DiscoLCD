@@ -44,6 +44,9 @@
 /* uGFX includes. */
 #include "gfx.h"
 
+/* SIM900 includes */
+#include "sim900a.h"
+
 
 /* Task priorities. */
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
@@ -104,6 +107,7 @@ static void prvSetupHardware(void)
 	/* Setup the LED outputs. */
 	vParTestInitialise();
 }
+<<<<<<< HEAD
 
 	static GHandle  MainMenuContainer, KeypadContainer, CallContainer, MsgContainer, CallOutContainer, CallInContainer, ReadMsgContainer;
 
