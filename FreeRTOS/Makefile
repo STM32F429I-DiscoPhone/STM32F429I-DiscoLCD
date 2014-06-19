@@ -5,7 +5,7 @@ BIN_IMAGE = $(PROJECT).bin
 HEX_IMAGE = $(PROJECT).hex
 
 # set the path to STM32F429I-Discovery firmware package
-STDP ?= ../../../STM32F429I-Discovery_FW_V1.0.1
+STDP ?= ../../STM32F429I-Discovery_FW_V1.0.1
 
 # set the path to FreeRTOS package
 RTOS ?= ../../FreeRTOSv8.0.1

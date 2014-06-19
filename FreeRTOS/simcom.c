@@ -6,7 +6,6 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-#define DBG
 
 #define WAITTIME 2000000
 

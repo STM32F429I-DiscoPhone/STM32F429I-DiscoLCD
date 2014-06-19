@@ -11,6 +11,7 @@
 
 /* Main task delay period */
 #define MAIN_TASK_DELAY (1000 / portTICK_PERIOD_MS)
+#define INCOMING_TASK_DELAY (10000 / portTICK_PERIOD_MS)
 
 /* Incoming call checking delay period */
 #define INCOMING_TASK_DELAY (10000 / portTICK_PERIOD_MS)
