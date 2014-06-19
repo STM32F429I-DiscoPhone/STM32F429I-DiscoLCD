@@ -535,8 +535,10 @@ void prvIncomingTask(void *pvParameters)
     while(1) {
         vTaskDelayUntil(&xLastWakeTime, INCOMING_TASK_DELAY);
 
+        /*
         if(SIMCOM_CheckPhone()) {
             next = INCOMING;
         }
+        */
     }
 }
