@@ -49,7 +49,7 @@
 #define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainLCD_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
 #define SLEEP_TICKS       30000/portTICK_PERIOD_MS
-#define NEXT_CHAR_TICKS   3000/portTICK_PERIOD_MS
+#define NEXT_CHAR_TICKS   5000/portTICK_PERIOD_MS
 
 static GListener gl;
 
@@ -445,6 +445,8 @@ void wakeup(void)
 {
 	BaseType_t xYieldRequired;	
 	LCD_DisplayOn();
+	ticks_last = xTaskGetTickCount();
+	ticks_to_sleep = SLEEP_TICKS;
 	xYieldRequired = xTaskResumeFromISR( LCD_Handle );
 	//taskYIELD();
 	if (xYieldRequired == pdTRUE) {
@@ -476,10 +478,10 @@ static void prvLCDTask(void *pvParameters)
 	gfxInit();
 	gwinAttachMouse(0);
 	char labeltext[16] = "";
-	char msgbuffer[255];
-	char linebuffer[3][41];
-	char* last_char = NULL;
-	char* last_char_in_lb = NULL;
+	char msgbuffer[255] = "";
+	char linebuffer[3][31];
+	char last_char = 0;
+	char *last_char_in_lb;
 	uint32_t textindex = 0, page = 0, msgindex = 0, currentline = 0, lineindex = 0, changing = 0, i;
 
 	createsUI();
@@ -492,11 +494,11 @@ static void prvLCDTask(void *pvParameters)
  	
 	ticks_to_sleep = SLEEP_TICKS;
 	ticks_now = xTaskGetTickCount();
-	ticks_last = 0;
+	ticks_last = ticks_now;
 	ticks_of_last_char = 0;
 
 	while (TRUE) {
-		pe = geventEventWait(&gl, 10);
+		pe = geventEventWait(&gl, 5);
 		ticks_now = xTaskGetTickCount();
 		if (!pe) {
 			if (ticks_to_sleep <= ticks_now - ticks_last) {
@@ -536,15 +538,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '1';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 1) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 1) + 1;
+							if (last_char != 0 && char_in_button(last_char, 1) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 1) + 1;
 								if (i > 4 || char_of_button[1][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[1][i];
+								last_char = char_of_button[1][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[1][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[1][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[1][0];
 							}
 						}
@@ -554,15 +558,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '2';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 2) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 2) + 1;
+							if (last_char != 0 && char_in_button(last_char, 2) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 2) + 1;
 								if (i > 4 || char_of_button[2][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[2][i];
+								last_char = char_of_button[2][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[2][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[2][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[2][0];
 							}
 							
@@ -573,15 +579,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '3';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 3) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 3) + 1;
+							if (last_char != 0 && char_in_button(last_char, 3) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 3) + 1;
 								if (i > 4 || char_of_button[3][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[3][i];
+								last_char = char_of_button[3][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[3][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[3][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[3][0];
 							}
 							
@@ -592,15 +600,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '4';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 4) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 4) + 1;
+							if (last_char != 0 && char_in_button(last_char, 4) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 4) + 1;
 								if (i > 4 || char_of_button[4][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[4][i];
+								last_char = char_of_button[4][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[4][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[4][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[4][0];
 							}
 							
@@ -611,15 +621,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '5';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 5) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 5) + 1;
+							if (last_char != 0 && char_in_button(last_char, 5) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 5) + 1;
 								if (i > 4 || char_of_button[5][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[5][i];
+								last_char = char_of_button[5][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[5][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[5][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[5][0];
 							}
 							
@@ -630,15 +642,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '6';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 6) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 6) + 1;
+							if (last_char != 0 && char_in_button(last_char, 6) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 6) + 1;
 								if (i > 4 || char_of_button[6][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[6][i];
+								last_char = char_of_button[6][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[6][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[6][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[6][0];
 							}
 							
@@ -649,15 +663,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '7';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 7) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 7) + 1;
+							if (last_char != 0 && char_in_button(last_char, 7) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 7) + 1;
 								if (i > 4 || char_of_button[7][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[7][i];
+								last_char = char_of_button[7][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[7][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[7][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[7][0];
 							}
 							
@@ -668,15 +684,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '8';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 8) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 8) + 1;
+							if (last_char != 0 && char_in_button(last_char, 8) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 8) + 1;
 								if (i > 4 || char_of_button[8][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[8][i];
+								last_char = char_of_button[8][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[8][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[8][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[8][0];
 							}
 							
@@ -687,15 +705,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '9';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 9) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 9) + 1;
+							if (last_char != 0 && char_in_button(last_char, 9) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 9) + 1;
 								if (i > 4 || char_of_button[9][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[9][i];
+								last_char = char_of_button[9][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[9][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[9][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[9][0];
 							}
 							
@@ -706,15 +726,17 @@ static void prvLCDTask(void *pvParameters)
 							labeltext[textindex++] = '0';
 							labeltext[textindex] = '\0';
 						} else if (page == 2) {
-							if (last_char != NULL && char_in_button(*last_char, 0) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
-								i = char_in_button(*last_char, 0) + 1;
+							if (last_char != 0 && char_in_button(last_char, 0) != -1 && (ticks_now-ticks_of_last_char <= NEXT_CHAR_TICKS)) {
+								i = char_in_button(last_char, 0) + 1;
 								if (i > 4 || char_of_button[0][i] == 0) {
 									i = 0;
 								}
-								*last_char = char_of_button[0][i];
+								last_char = char_of_button[0][i];
+								msgbuffer[msgindex - 1] = last_char;
 								*last_char_in_lb = char_of_button[0][i];
 							} else {
 								msgbuffer[msgindex++] = char_of_button[0][0];
+								last_char = msgbuffer[msgindex - 1];
 								linebuffer[currentline][lineindex++] = char_of_button[0][0];
 							}
 							
@@ -750,14 +772,16 @@ static void prvLCDTask(void *pvParameters)
 				msgbuffer[msgindex] = '\0';
 				linebuffer[currentline][lineindex] = '\0';
 				ticks_of_last_char = ticks_now;
-				//if (msgindex != 0 && lineindex != 0) {
-				//	last_char = &(msgbuffer[msgindex-1]);
-				//	last_char_in_lb = &(linebuffer[lineindex-1]);
-				//}
+
+				if (lineindex > 0)
+					last_char_in_lb = &(linebuffer[currentline][lineindex-1]);
+				else if (currentline != 0)
+					last_char_in_lb = &(linebuffer[currentline-1][0]);
+
 				gwinSetText(MsgLabel[1], linebuffer[0], TRUE);
 				gwinSetText(MsgLabel[2], linebuffer[1], TRUE);
 				gwinSetText(MsgLabel[3], linebuffer[2], TRUE);
-				if (lineindex == 41) {
+				if (lineindex == 31) {
 					if (currentline != 2) {
 						currentline ++;
 						lineindex = 0;
