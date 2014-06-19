@@ -107,7 +107,6 @@ static void prvSetupHardware(void)
 	/* Setup the LED outputs. */
 	vParTestInitialise();
 }
-<<<<<<< HEAD
 
 	static GHandle  MainMenuContainer, KeypadContainer, CallContainer, MsgContainer, CallOutContainer, CallInContainer, ReadMsgContainer;
 
