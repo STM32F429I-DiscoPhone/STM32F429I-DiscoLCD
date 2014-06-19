@@ -20,6 +20,8 @@ void prvPhoneTask(void *pvParameters)
     // Initialize the xLastWakeTime variable with current time.
     xLastWakeTime = xTaskGetTickCount();
 
+    SIMCOM_Test();
+
     while(1) {
         vTaskDelayUntil(&xLastWakeTime, MAIN_TASK_DELAY);
         if(current == next) {
@@ -54,7 +56,7 @@ void prvPhoneTask(void *pvParameters)
 
 void prvButtonTask(void *pvParameters)
 {
-    return;
+    while(1);
 }
 
 /* This task is used for checking incoming call.
@@ -72,8 +74,10 @@ void prvIncomingTask(void *pvParameters)
     while(1) {
         vTaskDelayUntil(&xLastWakeTime, INCOMING_TASK_DELAY);
 
+        /*
         if(SIMCOM_CheckPhone()) {
             next = INCOMING;
         }
+        */
     }
 }

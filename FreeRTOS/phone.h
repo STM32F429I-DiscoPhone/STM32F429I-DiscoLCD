@@ -5,9 +5,9 @@
 #include <task.h>
 
 /* Task priority */
-#define mainPhone_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
-#define mainButton_TASK_PRIORITY			( tskIDLE_PRIORITY + 2 )
-#define mainCheck_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
+#define mainPhone_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
+#define mainButton_TASK_PRIORITY			( tskIDLE_PRIORITY + 1 )
+#define mainCheck_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
 
 /* Main task delay period */
 #define MAIN_TASK_DELAY (1000 / portTICK_PERIOD_MS)

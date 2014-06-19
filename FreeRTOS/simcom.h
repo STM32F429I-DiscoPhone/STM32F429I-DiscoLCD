@@ -13,5 +13,7 @@ void SIMCOM_Dial(char *number);
 void SIMCOM_Answer();
 void SIMCOM_HangUp();
 
+int SIMCOM_ReadSMS(SMS_STRUCT sms[3]);
+
 void SIMCOM_Test();
 #endif

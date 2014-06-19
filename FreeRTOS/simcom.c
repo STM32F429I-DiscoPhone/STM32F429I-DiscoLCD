@@ -86,14 +86,6 @@ static int SendCmd_Check(char *cmd, char *check)
     return result;
 }
 
-static void FlushUART()
-{
-    char c;
-
-    while((c = TM_USART_Getc(USART1)) != 0);
-}
-
-
 void SIMCOM_Init()
 {
     /* Init USART communication between STM and SIMCOM module */
@@ -244,25 +236,40 @@ int SIMCOM_CheckPhone()
     return result;
 }
 
-int SIMCOM_RecvSMS(SMS_STRUCT *sms)
+int SIMCOM_ReadSMS(SMS_STRUCT sms[3])
 {
     int count = 0;
-    char recv[512];
+    char recv[256];
+    char *pch;
 
     dbg_puts("Receive SMS\n\r");
-    SendCmd("AT_CMGL=\"ALL\"");
+    SendCmd("AT+CMGL=\"ALL\"");
 
     vTaskDelay(5000 / portTICK_PERIOD_MS);
 
     RecvResponse(recv);
+    pch = recv;
+
+    while((pch = strstr(pch, "+CMGL")) != NULL) {
+        pch = strchr(pch, '"');
+        pch = strchr(pch + 1, '\"');
+        pch = strchr(pch + 1, '\"');
+        strncpy(sms[count].number, pch + 1, strchr(pch + 1, '\"') - pch - 1);
+        sms[count].number[(int)(strchr(pch + 1, '\"') - pch) - 1] = '\0';
+        dbg_puts("Cut: ");
+        dbg_puts(sms[count].number);
+        dbg_puts("\n\r");
+    }
 
 
+    return count;
 }
 
 /* Test API */
 void SIMCOM_Test()
 {
     char c;
+    SMS_STRUCT sms[3];
 
     while(1) {
         while((c = TM_USART_Getc(USART6)) != 0)
@@ -279,6 +286,9 @@ void SIMCOM_Test()
                     break;
                 case 'e':
                     SIMCOM_CheckPhone();
+                    break;
+                case 's':
+                    SIMCOM_ReadSMS(sms);
                     break;
                 default:
                     break;
