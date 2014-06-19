@@ -31,7 +31,7 @@ static void RecvResponse(char *response)
     while(wait--) {
         if((c = TM_USART_Getc(USART1)) != 0) {
             if(c == '\n' || c == '\r') {
-
+                response[recv++] = ' ';
             }
             else {
                 response[recv++] = c;
@@ -116,30 +116,35 @@ void SIM900A_Init()
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
-}
 
-void SIM900A_GetModule(SIM900A_MODULE_T *module)
-{
-    char recv[32];
+    while(1) {
+        dbg_puts("Try disable calling number\n\r");
+        if(SendCmd_Check("AT+CLIP=0", "OK")) {
+            dbg_puts("Disable successful!\n\r");
+            break;
+        }
 
-    SendCmd("AT+CGMI");
-    RecvResponse(recv);
-    if(strlen(recv) > 0) {
-        strncpy(module->manufacturer, recv, strlen(recv) - 2);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-    SendCmd("AT+CGMM");
-    RecvResponse(recv);
-    if(strlen(recv) > 0) {
-        strncpy(module->type, recv, strlen(recv) - 2);
+    while(1) {
+        dbg_puts("Try enable ATH\n\r");
+        if(SendCmd_Check("AT+CVHU=0", "OK")) {
+            dbg_puts("Enable successful!\n\r");
+            break;
+        }
+
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-    SendCmd("AT+CGSN");
-    RecvResponse(recv);
-    if(strlen(recv) > 0) {
-        strncpy(module->imei, recv, strlen(recv) - 2);
+    while(1) {
+        dbg_puts("Set SMS text mode\n\r");
+        if(SendCmd_Check("AT+CMGF=1", "OK")) {
+            dbg_puts("Set successful!\n\r");
+            break;
+        }
+
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
 
@@ -205,19 +210,64 @@ void SIM900A_Answer()
     }
 }
 
+void SIM900A_HangUp()
+{
+    int try;
+
+    for(try = 5; try >= 0; try--) {
+        if(SendCmd_Check("ATH", "OK")) {
+            break;
+        }
+    }
+}
+
+int SIM900A_CheckPhone()
+{
+    char recv[64];
+    int result = 0;
+   
+    dbg_puts("Check coming call\n\r");
+    RecvResponse(recv);
+
+    if(strstr(recv, "RING")) {
+        dbg_puts("Has coming call!\n\r");
+        result = 1;
+    }
+
+    return result;
+}
+
+void SIM900A_RecvSMS()
+{
+    dbg_puts("Receive SMS\n\r");
+    SendCmd("");
+}
+
 /* Test API */
 void SIM900A_Test()
 {
-    while(1) {
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-        SIM900A_MODULE_T module;
-        SIM900A_GetModule(&module);
+    char c;
 
-        dbg_puts(module.manufacturer);
-        dbg_puts(", ");
-        dbg_puts(module.type);
-        dbg_puts(", ");
-        dbg_puts(module.imei);
-        dbg_puts("\n\r");
+    while(1) {
+        while((c = TM_USART_Getc(USART6)) != 0)
+        {
+            switch(c) {
+                case 'd':
+                    SIM900A_Dial("0973439084");
+                    break;
+                case 'h':
+                    SIM900A_HangUp();
+                    break;
+                case 'c':
+                    SIM900A_Answer();
+                    break;
+                case 'e':
+                    SIM900A_CheckPhone();
+                    break;
+                default:
+                    break;
+            }
+        }
+        vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 }

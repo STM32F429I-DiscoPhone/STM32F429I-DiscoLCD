@@ -39,7 +39,7 @@
 
 //Buffer size
 #ifndef TM_USART_BUFFER_SIZE
-#define TM_USART_BUFFER_SIZE 		32
+#define TM_USART_BUFFER_SIZE 		512
 #endif
 
 //NVIC Priority
