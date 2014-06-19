@@ -3,7 +3,6 @@
 
 typedef struct SMS_STRUCT_T {
     char number[16];
-    char time[32];
     char content[64];
 } SMS_STRUCT;
 

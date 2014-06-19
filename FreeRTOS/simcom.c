@@ -30,8 +30,8 @@ static void RecvResponse(char *response)
 
     while(wait--) {
         if((c = TM_USART_Getc(USART1)) != 0) {
-            if(c == '\n' || c == '\r') {
-                response[recv++] = ' ';
+            if(c == '\r') {
+
             }
             else {
                 response[recv++] = c;
@@ -250,19 +250,67 @@ int SIMCOM_ReadSMS(SMS_STRUCT sms[3])
     RecvResponse(recv);
     pch = recv;
 
-    while((pch = strstr(pch, "+CMGL")) != NULL) {
+    while((pch = strstr(pch, "+CMGL")) != NULL && count < 3) {
+        /* Cut Number */
         pch = strchr(pch, '"');
         pch = strchr(pch + 1, '\"');
         pch = strchr(pch + 1, '\"');
         strncpy(sms[count].number, pch + 1, strchr(pch + 1, '\"') - pch - 1);
         sms[count].number[(int)(strchr(pch + 1, '\"') - pch) - 1] = '\0';
-        dbg_puts("Cut: ");
-        dbg_puts(sms[count].number);
-        dbg_puts("\n\r");
+
+        // Skip until message content
+        pch = strchr(pch + 1, '\n');
+
+        /* Cut message content */
+        if(strstr(pch + 1, "+CMGL")) {
+            strncpy(sms[count].content, pch + 1, strstr(pch + 1, "+CMGL") - pch - 1);
+            sms[count].content[(int)(strstr(pch + 1, "+CMGL") - pch - 1)] = '\0';
+            pch = strstr(pch + 1, "+CMGL");
+        }
+        else {
+            strncpy(sms[count].content, pch + 1, strstr(pch + 1, "OK") - pch - 1);
+            sms[count].content[(int)(strstr(pch + 1, "OK") - pch - 1)] = '\0';
+            pch = strstr(pch + 1, "OK");
+        }
+
+        count++;
     }
 
-
     return count;
+}
+
+void SIMCOM_SendSMS(char *number, char *content)
+{
+    char cmd[128] = {0};
+    char recv[64];
+
+    strcpy(cmd, "AT+CMGS=\"");
+    strcat(cmd, number);
+    strcpy(cmd, "\",\"");
+    strcat(cmd, content);
+    strcpy(cmd, "\"");
+
+    dbg_puts("Sned message to ");
+    dbg_puts(number);
+    dbg_puts("\n\r");
+    SendCmd(cmd);
+    while(1) {
+        RecvResponse(recv);
+
+        if(strlen(recv) == 0) {
+            continue;
+        }
+
+        if(strstr(recv, "ERROR")) {
+            dbg_puts("ERROR\n\r");
+        }
+        else if(strstr(recv, "OK")) {
+            dbg_puts("Send successful!\n\r");
+        }
+
+        break;
+    }
+
 }
 
 /* Test API */
@@ -289,6 +337,9 @@ void SIMCOM_Test()
                     break;
                 case 's':
                     SIMCOM_ReadSMS(sms);
+                    break;
+                case 'i':
+                    SIMCOM_SendSMS("0973439084", "Test\n123");
                     break;
                 default:
                     break;
