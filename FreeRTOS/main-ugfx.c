@@ -105,9 +105,9 @@ static void prvSetupHardware(void)
 	vParTestInitialise();
 }
 
-static GHandle  MainMenuContainer, KeypadContainer, CallContainer, MsgContainer, CallOutContainer, CallInContainer;
+	static GHandle  MainMenuContainer, KeypadContainer, CallContainer, MsgContainer, CallOutContainer, CallInContainer, ReadMsgContainer;
 
-static GHandle	PHONEBtn, MSGBtn, CallBtn, CancelBtn, OneBtn, TwoBtn, ThreeBtn, FourBtn, FiveBtn, SixBtn, SevenBtn, EightBtn, NineBtn, StarBtn, ZeroBtn, JingBtn, AnswerBtn, DeclineBtn, HangoffBtn;
+static GHandle	PHONEBtn, MSGBtn, CallBtn, CancelBtn, OneBtn, TwoBtn, ThreeBtn, FourBtn, FiveBtn, SixBtn, SevenBtn, EightBtn, NineBtn, StarBtn, ZeroBtn, JingBtn, AnswerBtn, DeclineBtn, HangoffBtn, BackspaceBtn, SendBtn;
 static GHandle  NumLabel, MsgLabel[5], IncomingLabel, OutgoingLabel;
 
 void createsContainer(void)
@@ -261,6 +261,19 @@ void createsMsglabel(void)
 	wi.text = "vvv";
 	wi.g.y += wi.g.height;
 	MsgLabel[4] = gwinLabelCreate(0, &wi);
+
+	// Send button
+	wi.g.width = gdispGetWidth()/2 - 10;
+	wi.g.height = 40;
+	wi.g.y = gdispGetHeight()/2 - 60;
+	wi.g.x = 10;
+	wi.text = "SEND";
+	SendBtn = gwinButtonCreate(0, &wi);
+
+	// Backspace button
+	wi.g.x += wi.g.width;
+	wi.text = "<---";
+	BackspaceBtn = gwinButtonCreate(0, &wi);
 }
 
 void createsMain(void)
@@ -531,6 +544,32 @@ static void prvLCDTask(void *pvParameters)
 							textindex = 0;
 							labeltext[0] = '\0';
 							changing = 1;
+						}
+					} else if (((GEventGWinButton*)pe)->button == SendBtn) {
+						// TODO: send message
+						msgbuffer[0] = '\0';
+						msgindex = 0;
+						linebuffer[0][0] = '\0';
+						linebuffer[1][0] = '\0';
+						linebuffer[2][0] = '\0';
+						currentline = 0;
+						lineindex = 0;
+						gwinHide(MsgContainer);
+						gwinHide(KeypadContainer);
+						page = 0;
+						gwinShow(MainMenuContainer);
+					} else if (((GEventGWinButton*)pe)->button == BackspaceBtn) {
+						if (msgindex == 0)
+							continue;
+						changing = 1;
+						last_char = 0;
+						msgindex--;
+						*last_char_in_lb = '\0';
+						if (lineindex == 0) {
+							lineindex = 30;
+							currentline--;
+						} else {
+							lineindex--;
 						}
 					} else if (((GEventGWinButton*)pe)->button == OneBtn) {
 						changing = 1;
