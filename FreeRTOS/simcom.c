@@ -1,4 +1,4 @@
-#include "sim900a.h"
+#include "simcom.h"
 #include <stm32f4xx.h>
 #include <string.h>
 #include "tm_stm32f4_usart.h"
@@ -56,7 +56,7 @@ static void SendCmd(char *cmd)
 }
 
 /*
- * Send AT command to SIM900A and check response immediately.
+ * Send AT command to SIMCOM module and check response immediately.
  */
 static int SendCmd_Check(char *cmd, char *check)
 {
@@ -86,10 +86,17 @@ static int SendCmd_Check(char *cmd, char *check)
     return result;
 }
 
-
-void SIM900A_Init()
+static void FlushUART()
 {
-    /* Init USART communication between STM and SIM900A */
+    char c;
+
+    while((c = TM_USART_Getc(USART1)) != 0);
+}
+
+
+void SIMCOM_Init()
+{
+    /* Init USART communication between STM and SIMCOM module */
     TM_USART_Init(USART1, TM_USART_PinsPack_1, 115200);
 
 #ifdef DBG
@@ -98,7 +105,7 @@ void SIM900A_Init()
 #endif
 
     while(1) {
-        dbg_puts("Try initilize communication between STM32 & SIM900A\n\r");
+        dbg_puts("Try initilize communication between STM32 & SIMCOM module\n\r");
         if(SendCmd_Check("AT", "OK")) {
             dbg_puts("Initilization successful!\n\r");
             break;
@@ -148,7 +155,7 @@ void SIM900A_Init()
     }
 }
 
-void SIM900A_Dial(char *number)
+void SIMCOM_Dial(char *number)
 {
     char cmd[16] = {0};
     char recv[64];
@@ -185,7 +192,7 @@ void SIM900A_Dial(char *number)
     }
 }
 
-void SIM900A_Answer()
+void SIMCOM_Answer()
 {
     char recv[64];
 
@@ -210,7 +217,7 @@ void SIM900A_Answer()
     }
 }
 
-void SIM900A_HangUp()
+void SIMCOM_HangUp()
 {
     int try;
 
@@ -221,7 +228,7 @@ void SIM900A_HangUp()
     }
 }
 
-int SIM900A_CheckPhone()
+int SIMCOM_CheckPhone()
 {
     char recv[64];
     int result = 0;
@@ -237,14 +244,23 @@ int SIM900A_CheckPhone()
     return result;
 }
 
-void SIM900A_RecvSMS()
+int SIMCOM_RecvSMS(SMS_STRUCT *sms)
 {
+    int count = 0;
+    char recv[512];
+
     dbg_puts("Receive SMS\n\r");
-    SendCmd("");
+    SendCmd("AT_CMGL=\"ALL\"");
+
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+
+    RecvResponse(recv);
+
+
 }
 
 /* Test API */
-void SIM900A_Test()
+void SIMCOM_Test()
 {
     char c;
 
@@ -253,16 +269,16 @@ void SIM900A_Test()
         {
             switch(c) {
                 case 'd':
-                    SIM900A_Dial("0973439084");
+                    SIMCOM_Dial("0973439084");
                     break;
                 case 'h':
-                    SIM900A_HangUp();
+                    SIMCOM_HangUp();
                     break;
                 case 'c':
-                    SIM900A_Answer();
+                    SIMCOM_Answer();
                     break;
                 case 'e':
-                    SIM900A_CheckPhone();
+                    SIMCOM_CheckPhone();
                     break;
                 default:
                     break;

@@ -60,7 +60,8 @@ UGFX_OBJS = \
     gdisp_lld_ILI9341.o \
     ginput_lld_mouse.o \
     main-ugfx.o \
-    sim900a.o \
+    simcom.o \
+    phone.o \
     tm_stm32f4_usart.o \
     ParTest.o \
     port.o \
