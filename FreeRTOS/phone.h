@@ -6,11 +6,12 @@
 
 /* Task priority */
 #define mainPhone_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
-#define mainButton_TASK_PRIORITY			( tskIDLE_PRIORITY + 1 )
-#define mainCheck_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
+#define mainButton_TASK_PRIORITY			( tskIDLE_PRIORITY + 2 )
+#define mainCheck_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
 
 /* Main task delay period */
 #define MAIN_TASK_DELAY (1000 / portTICK_PERIOD_MS)
+#define INCOMING_TASK_DELAY (10000 / portTICK_PERIOD_MS)
 
 /* Incoming call checking delay period */
 #define INCOMING_TASK_DELAY (10000 / portTICK_PERIOD_MS)
@@ -25,6 +26,8 @@
  */
 enum State {MAIN, INCOMING, DURING, DIAL, SEND, READ};
 
+static TaskHandle_t Phone_Handle;
+static TaskHandle_t LCD_Handle;
 /* Phone main task */
 void prvPhoneTask(void *pvParameters);
 

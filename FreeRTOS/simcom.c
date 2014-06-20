@@ -7,8 +7,6 @@
 #include <task.h>
 #include <semphr.h>
 
-#define DBG
-
 #define WAITTIME 2000000
 
 SemaphoreHandle_t xMutex;
@@ -254,7 +252,7 @@ int SIMCOM_CheckPhone()
 int SIMCOM_ReadSMS(SMS_STRUCT sms[3])
 {
     int count = 0;
-    char recv[256];
+    char recv[128];
     char *pch;
 
     while(1) {
@@ -319,11 +317,11 @@ void SIMCOM_SendSMS(char *number, char *content)
     char cmd[128] = {0};
     char recv[64];
 
-    strcpy(cmd, "AT+CMGS=\"");
+    strcpy(cmd, "AT+CMGSO=\"");
     strcat(cmd, number);
-    strcpy(cmd, "\",\"");
+    strcat(cmd, "\",\"");
     strcat(cmd, content);
-    strcpy(cmd, "\"");
+    strcat(cmd, "\"");
 
     dbg_puts("Sned message to ");
     dbg_puts(number);
@@ -379,6 +377,7 @@ void SIMCOM_Test()
                 default:
                     break;
             }
+			dbg_puts("Test\n\r");
         }
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }

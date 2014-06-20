@@ -5,7 +5,7 @@ BIN_IMAGE = $(PROJECT).bin
 HEX_IMAGE = $(PROJECT).hex
 
 # set the path to STM32F429I-Discovery firmware package
-STDP ?= ../../../STM32F429I-Discovery_FW_V1.0.1
+STDP ?= ../../STM32F429I-Discovery_FW_V1.0.1
 
 # set the path to FreeRTOS package
 RTOS ?= ../../FreeRTOSv8.0.1
@@ -60,6 +60,7 @@ UGFX_OBJS = \
     gdisp_lld_ILI9341.o \
     ginput_lld_mouse.o \
     main-ugfx.o \
+	mylib.o \
     simcom.o \
     phone.o \
     tm_stm32f4_usart.o \
