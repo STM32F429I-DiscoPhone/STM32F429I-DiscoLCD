@@ -37,10 +37,9 @@ void prvPhoneTask(void *pvParameters)
 	createsUI();
 	gwinShow(MainMenuContainer);
     // Create the check incoming task
-    xTaskCreate( prvIncomingTask, "Check incoming", configMINIMAL_STACK_SIZE * 2, NULL, mainCheck_TASK_PRIORITY, NULL);
+    xTaskCreate( prvIncomingTask, "Check incoming", configMINIMAL_STACK_SIZE , NULL, mainCheck_TASK_PRIORITY, NULL);
     // Create the check button task
-    xTaskCreate( prvButtonTask, "Check button", configMINIMAL_STACK_SIZE * 2, NULL, mainButton_TASK_PRIORITY, &LCD_Handle);
-    
+    xTaskCreate( prvButtonTask, "Check button", configMINIMAL_STACK_SIZE * 3, NULL, mainButton_TASK_PRIORITY, &LCD_Handle);
     // Initialize the xLastWakeTime variable with current time.
     xLastWakeTime = xTaskGetTickCount();
 	ticks_last = xLastWakeTime;
@@ -101,9 +100,9 @@ void prvButtonTask(void *pvParameters)
 	SMS_STRUCT sms[3];
 
 	char labeltext[16] = "";
-	char msgbuffer[255] = "";
+	char msgbuffer[31] = "";
 	char numbuffer[16] = "";
-	char linebuffer[3][31];
+	char linebuffer[1][31];
 	char last_char = 0;
 	char *last_char_in_lb;
 	uint32_t textindex = 0, msgindex = 0, currentline = 0, lineindex = 0, numindex = 0, changing = 0, msgORnum = 0, i, j, totalmsg, readline = 0;
@@ -128,16 +127,14 @@ void prvButtonTask(void *pvParameters)
 					next = MAIN;
 				} else if (((GEventGWinButton*)pe)->button == WRITESMSBtn) {
 					// change status to READ
-					next = SEND;
 					msgbuffer[0] = '\0';
 					msgindex = 0;
 					linebuffer[0][0] = '\0';
-					linebuffer[1][0] = '\0';
-					linebuffer[2][0] = '\0';
 					currentline = 0;
 					lineindex = 0;
 					numbuffer[0] = '\0';
 					numindex = 0;
+					next = SEND;
 				} else if (((GEventGWinButton*)pe)->button == READSMSBtn) {
 					next = READ;
 					//TODO: read sms here
@@ -151,11 +148,11 @@ void prvButtonTask(void *pvParameters)
 					readline = 0;
 					currentline = 0;
 					for (i = 0; i < totalmsg; i++) {
-						/* FROM: [number] */
+						if (i == 3)
+							break;
 						strcpy(linebuffer[0], "FROM: ");
 						strcat(linebuffer[0], sms[i].number);
 						gwinSetText(ReadMsgLabel[readline++], linebuffer[0], TRUE);
-						/* Message */
 						strcpy(linebuffer[0], sms[i].content);
 						gwinSetText(ReadMsgLabel[readline++], linebuffer[0], TRUE);
 					}
@@ -499,17 +496,9 @@ void prvButtonTask(void *pvParameters)
 					else if (currentline != 0)
 						last_char_in_lb = &(linebuffer[currentline-1][0]);
 
+					//gwinSetText(MsgLabel[1], linebuffer[1], TRUE);
+					//gwinSetText(MsgLabel[2], linebuffer[2], TRUE);
 					gwinSetText(MsgLabel[0], linebuffer[0], TRUE);
-					gwinSetText(MsgLabel[1], linebuffer[1], TRUE);
-					gwinSetText(MsgLabel[2], linebuffer[2], TRUE);
-					if (lineindex == 31) {
-						if (currentline != 2) {
-							currentline ++;
-							lineindex = 0;
-						} else {
-							//TODO: overline
-						}
-					}
 				} else { //write to number
 					changing = 0;
 					numbuffer[numindex] = '\0';
@@ -535,10 +524,8 @@ void prvIncomingTask(void *pvParameters)
     while(1) {
         vTaskDelayUntil(&xLastWakeTime, INCOMING_TASK_DELAY);
 
-        /*
         if(SIMCOM_CheckPhone()) {
             next = INCOMING;
         }
-        */
     }
 }

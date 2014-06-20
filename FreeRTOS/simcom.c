@@ -6,7 +6,6 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
-
 #define WAITTIME 2000000
 
 #ifdef DBG
@@ -238,7 +237,7 @@ int SIMCOM_CheckPhone()
 int SIMCOM_ReadSMS(SMS_STRUCT sms[3])
 {
     int count = 0;
-    char recv[256];
+    char recv[128];
     char *pch;
 
     dbg_puts("Receive SMS\n\r");
@@ -275,6 +274,18 @@ int SIMCOM_ReadSMS(SMS_STRUCT sms[3])
         count++;
     }
 
+#ifdef DBG
+	int i;
+
+	for(i = 0; i < count; i++) {
+		dbg_puts("From: ");
+		dbg_puts(sms[i].number);
+		dbg_puts("\n\rContent: ");
+		dbg_puts(sms[i].content);
+		dbg_puts("\n\r");
+	}
+#endif
+
     return count;
 }
 
@@ -283,11 +294,11 @@ void SIMCOM_SendSMS(char *number, char *content)
     char cmd[128] = {0};
     char recv[64];
 
-    strcpy(cmd, "AT+CMGS=\"");
+    strcpy(cmd, "AT+CMGSO=\"");
     strcat(cmd, number);
-    strcpy(cmd, "\",\"");
+    strcat(cmd, "\",\"");
     strcat(cmd, content);
-    strcpy(cmd, "\"");
+    strcat(cmd, "\"");
 
     dbg_puts("Sned message to ");
     dbg_puts(number);
@@ -343,6 +354,7 @@ void SIMCOM_Test()
                 default:
                     break;
             }
+			dbg_puts("Test\n\r");
         }
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }

@@ -46,7 +46,7 @@
 #include "simcom.h"
 
 /* Task priorities. */
-#define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1 )
+#define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 2 )
 
 static void prvSetupHardware(void)
 {
