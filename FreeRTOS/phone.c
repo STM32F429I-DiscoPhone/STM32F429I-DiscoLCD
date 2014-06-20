@@ -22,6 +22,8 @@ extern GHandle  NumLabel, MsgLabel[3], TargetLabel, IncomingLabel, OutgoingLabel
 
 extern uint8_t locking;
 
+TaskHandle_t Phone_Handle;
+TaskHandle_t LCD_Handle;
 enum State next, current;
 
 void prvPhoneTask(void *pvParameters)
@@ -43,17 +45,18 @@ void prvPhoneTask(void *pvParameters)
     // Initialize the xLastWakeTime variable with current time.
     xLastWakeTime = xTaskGetTickCount();
 	ticks_last = xLastWakeTime;
+	ticks_to_sleep = SLEEP_TICKS;
     while(1) {
         vTaskDelayUntil(&xLastWakeTime, MAIN_TASK_DELAY);
 		ticks_now = xTaskGetTickCount();
-	//	if ( ticks_to_sleep < (ticks_now - ticks_last)) {
-			//LCD_DisplayOff();
-			//locking = 1;
-			//vTaskSuspend( LCD_Handle );
-			//vTaskSuspend( NULL );
-	//	} else {
-	//		ticks_to_sleep -= (ticks_now - ticks_last);
-	//	}
+		if ( ticks_to_sleep < (ticks_now - ticks_last)) {
+			LCD_DisplayOff();
+			locking = 1;
+			vTaskSuspend( LCD_Handle );
+			vTaskSuspend( NULL );
+		} else {
+			ticks_to_sleep -= (ticks_now - ticks_last);
+		}
         if(current == next) {
             continue;
         }

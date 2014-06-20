@@ -63,17 +63,26 @@ static void prvSetupHardware(void)
 uint8_t locking = 0;
 
 extern TickType_t ticks_now, ticks_last, ticks_to_sleep;
+extern TaskHandle_t Phone_Handle;
+extern TaskHandle_t LCD_Handle;
+extern enum State next, current;
 
 void lockphone(void)
 {
-	LCD_DisplayOff();
-	vTaskSuspend( Phone_Handle );
-	vTaskSuspend( LCD_Handle );
+	if (current == MAIN) {
+		LCD_DisplayOff();
+		locking = 1;
+		vTaskSuspend( Phone_Handle );
+		vTaskSuspend( LCD_Handle );
+	} else if (current != DURING && current != INCOMING) {
+		next = MAIN;
+	}
 }
 
 void wakeup(void)
 {
 	BaseType_t xYieldRequired;	
+	locking = 0;
 	LCD_DisplayOn();
 	ticks_last = xTaskGetTickCount();
 	ticks_to_sleep = SLEEP_TICKS;
@@ -119,10 +128,8 @@ void EXTI0_IRQHandler(void)
 {
 	if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
 		if (locking == 0) {
-			locking = 1;
 			lockphone();
 		} else {
-			locking = 0;
 			wakeup();
 		}
 		EXTI_ClearITPendingBit(EXTI_Line0);

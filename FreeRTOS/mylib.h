@@ -4,7 +4,7 @@
 /* uGFX includes. */
 #include "gfx.h"
 
-#define SLEEP_TICKS       30000/portTICK_PERIOD_MS
+#define SLEEP_TICKS       300000/portTICK_PERIOD_MS
 #define NEXT_CHAR_TICKS   5000/portTICK_PERIOD_MS
 
 // SMS CHAR IN each button

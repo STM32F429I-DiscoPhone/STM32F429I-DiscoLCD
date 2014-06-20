@@ -35,7 +35,7 @@ void createsContainer(void)
 
 	// Containers
 	wi.g.x = 0;
-	wi.g.y = 20;
+	wi.g.y = 15;
 	wi.g.width = gdispGetWidth();
 	wi.g.height = gdispGetHeight() - 20;
 	wi.text = "MM";
@@ -53,7 +53,7 @@ void createsContainer(void)
 	wi.g.width = gdispGetWidth();
 	wi.g.height = gdispGetHeight()/2 - 20;
 	wi.g.x = 0;
-	wi.g.y = 10;
+	wi.g.y = 15;
 	wi.text = "CC";
 	CallContainer = gwinContainerCreate(0, &wi, 0);
 
@@ -361,9 +361,9 @@ void createsUI(void)
 	// RETURN TO TOP
 	wi.g.show = TRUE;
 	wi.g.x = 5;
-	wi.g.y = 2;
-	wi.g.width = 30;
-	wi.g.height = 18;
+	wi.g.y = 5;
+	wi.g.width = 40;
+	wi.g.height = 20;
 	wi.text = "R";
 	//RETURNBtn = gwinButtonCreate(0, &wi);
 
