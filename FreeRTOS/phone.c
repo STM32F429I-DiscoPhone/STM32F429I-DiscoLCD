@@ -136,6 +136,7 @@ void prvButtonTask(void *pvParameters)
 					next = MAIN;
 				} else if (((GEventGWinButton*)pe)->button == WRITESMSBtn) {
 					// change status to READ
+					msgORnum = 0;
 					msgbuffer[0] = '\0';
 					msgindex = 0;
 					linebuffer[0][0] = '\0';
@@ -143,6 +144,8 @@ void prvButtonTask(void *pvParameters)
 					lineindex = 0;
 					numbuffer[0] = '\0';
 					numindex = 0;
+					gwinSetText(MsgLabel[0], linebuffer[0], TRUE);
+					gwinSetText(TargetLabel, numbuffer, TRUE);
 					next = SEND;
 				} else if (((GEventGWinButton*)pe)->button == READSMSBtn) {
 					next = READ;
