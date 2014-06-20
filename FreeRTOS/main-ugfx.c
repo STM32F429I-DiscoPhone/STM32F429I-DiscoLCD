@@ -126,12 +126,17 @@ void initButton(void)
 
 void EXTI0_IRQHandler(void)
 {
+	uint32_t i;
 	if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
 		if (locking == 0) {
 			lockphone();
 		} else {
 			wakeup();
 		}
+		i = 100000;
+		while (i > 0)
+			i--;
+		
 		EXTI_ClearITPendingBit(EXTI_Line0);
 	}
 }

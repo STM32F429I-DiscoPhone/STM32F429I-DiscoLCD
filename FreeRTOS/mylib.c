@@ -35,7 +35,7 @@ void createsContainer(void)
 
 	// Containers
 	wi.g.x = 0;
-	wi.g.y = 15;
+	wi.g.y = 10;
 	wi.g.width = gdispGetWidth();
 	wi.g.height = gdispGetHeight() - 20;
 	wi.text = "MM";
@@ -53,7 +53,7 @@ void createsContainer(void)
 	wi.g.width = gdispGetWidth();
 	wi.g.height = gdispGetHeight()/2 - 20;
 	wi.g.x = 0;
-	wi.g.y = 15;
+	wi.g.y = 10;
 	wi.text = "CC";
 	CallContainer = gwinContainerCreate(0, &wi, 0);
 

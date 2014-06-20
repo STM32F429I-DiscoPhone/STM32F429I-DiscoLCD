@@ -49,15 +49,21 @@ void prvPhoneTask(void *pvParameters)
     while(1) {
         vTaskDelayUntil(&xLastWakeTime, MAIN_TASK_DELAY);
 		ticks_now = xTaskGetTickCount();
-		if ( ticks_to_sleep < (ticks_now - ticks_last)) {
-			LCD_DisplayOff();
-			locking = 1;
-			vTaskSuspend( LCD_Handle );
-			vTaskSuspend( NULL );
+		if ( current != DURING ) {
+			if ( ticks_to_sleep < (ticks_now - ticks_last)) {
+				LCD_DisplayOff();
+				locking = 1;
+				vTaskSuspend( LCD_Handle );
+				vTaskSuspend( NULL );
+				ticks_to_sleep = SLEEP_TICKS;
+			} else {
+				ticks_to_sleep -= (ticks_now - ticks_last);
+			}
 		} else {
-			ticks_to_sleep -= (ticks_now - ticks_last);
+			ticks_to_sleep = SLEEP_TICKS;
 		}
         if(current == next) {
+			ticks_to_sleep = SLEEP_TICKS;
             continue;
         }
 
@@ -528,7 +534,16 @@ void prvIncomingTask(void *pvParameters)
         vTaskDelayUntil(&xLastWakeTime, INCOMING_TASK_DELAY);
 
         if(SIMCOM_CheckPhone()) {
+			if ( locking == 1) {
+				LCD_DisplayOn();
+				ticks_last = xTaskGetTickCount();
+				ticks_to_sleep = SLEEP_TICKS;
+				locking = 0;
+				vTaskResume( LCD_Handle );
+				vTaskResume( Phone_Handle );
+			}
             next = INCOMING;
+			
         }
     }
 }
