@@ -5,10 +5,13 @@
 
 #include <FreeRTOS.h>
 #include <task.h>
+#include <semphr.h>
 
 #define DBG
 
 #define WAITTIME 2000000
+
+SemaphoreHandle_t xMutex;
 
 #ifdef DBG
 static void dbg_puts(char *str)
@@ -145,6 +148,11 @@ void SIMCOM_Init()
 
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
+
+    xMutex = xSemaphoreCreateMutex();
+    if(xMutex == NULL) {
+        dbg_puts("Mutex false\n\r");
+    }
 }
 
 void SIMCOM_Dial(char *number)
@@ -225,8 +233,15 @@ int SIMCOM_CheckPhone()
     char recv[64];
     int result = 0;
    
-    dbg_puts("Check coming call\n\r");
-    RecvResponse(recv);
+    if(xSemaphoreTake(xMutex, (TickType_t) 10000) == pdTRUE) {
+        dbg_puts("Check coming call\n\r");
+        RecvResponse(recv);
+        xSemaphoreGive(xMutex);
+    }
+    else {
+        dbg_puts("Block mutex\n\r");
+        return 0;
+    }
 
     if(strstr(recv, "RING")) {
         dbg_puts("Has coming call!\n\r");
@@ -242,12 +257,19 @@ int SIMCOM_ReadSMS(SMS_STRUCT sms[3])
     char recv[256];
     char *pch;
 
-    dbg_puts("Receive SMS\n\r");
-    SendCmd("AT+CMGL=\"ALL\"");
+    while(1) {
+        if(xSemaphoreTake(xMutex, (TickType_t) 10) == pdTRUE) {
+            dbg_puts("Receive SMS\n\r");
+            SendCmd("AT+CMGL=\"ALL\"");
 
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
 
-    RecvResponse(recv);
+            RecvResponse(recv);
+            xSemaphoreGive(xMutex);
+
+            break;
+        }
+    }
     pch = recv;
 
     while((pch = strstr(pch, "+CMGL")) != NULL && count < 3) {
@@ -275,6 +297,19 @@ int SIMCOM_ReadSMS(SMS_STRUCT sms[3])
 
         count++;
     }
+
+#ifdef DBG
+    int i;
+
+    dbg_puts("Message\n\r");
+    for(i = 0; i < count; i++) {
+        dbg_puts("From: ");
+        dbg_puts(sms[i].number);
+        dbg_puts("\n\rContent: ");
+        dbg_puts(sms[i].content);
+        dbg_puts("\n\r");
+    }
+#endif
 
     return count;
 }
